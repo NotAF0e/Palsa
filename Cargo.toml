@@ -1,0 +1,16 @@
+[package]
+name = "palsa"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+roxmltree = "0.19.0"
+serde_yaml = "0.9.33"
+serde = { version = "1.0.201", features = ["derive"] }
+
+# For extracting the als file to an xml
+flate2 = { version = "1.0.17", features = [
+    "zlib-ng",
+], default-features = false }
