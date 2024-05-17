@@ -1,5 +1,7 @@
 /target
+Cargo.lock
 
 # Don't flood the repo with test files
+/test als files
 *.als
 *.xml
