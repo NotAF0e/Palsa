@@ -9,7 +9,7 @@ edition = "2021"
 # For parsing xml
 roxmltree = "0.19.0"
 
-# For creating yaml out of other data types
+# For creating yaml out of als files
 serde_yaml = "0.9.33"
 serde = { version = "1.0.201", features = ["derive"] }
 
@@ -18,8 +18,8 @@ flate2 = { version = "1.0.17", features = [
     "zlib-ng",
 ], default-features = false }
 
-# For parralel file loading, extracting and parsing
+# For parallel file loading, extracting and parsing
 rayon = "1.7"
 
-# Nice terminal stuff yay
-colored = "2.0"
+# For the gui
+egui = "0.27.2"

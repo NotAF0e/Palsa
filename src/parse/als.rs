@@ -1,15 +1,16 @@
 use crate::parse::{group, track};
 use roxmltree::Document;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AlsData {
+    pub name: String,
     pub groups: Vec<group::Group>,
     pub tracks: Vec<track::Track>,
 }
 
 impl AlsData {
-    pub fn parse(xml_contents: String) -> AlsData {
+    pub fn parse(name: String, xml_contents: String) -> AlsData {
         let doc = Document::parse(&xml_contents).unwrap();
         let root = doc.root_element();
 
@@ -28,6 +29,10 @@ impl AlsData {
             .filter_map(|n| group::Group::parse(n))
             .collect();
 
-        return AlsData { groups, tracks };
+        return AlsData {
+            name,
+            groups,
+            tracks,
+        };
     }
 }

@@ -1,63 +1,38 @@
-use parallel::parallel_parse;
-use serde_yaml::{to_string, to_value};
-
-use std::fs;
-use std::path::Path;
 use std::time::Instant;
 
+use parse::als::AlsData;
+
+mod cache;
 mod extract;
 pub mod macros;
 mod parallel;
 mod parse;
 
 fn main() {
-    let dir = "test als files/";
-    let file_count = fs::read_dir(Path::new(dir))
-        .unwrap() // Handle potential error
-        .filter_map(|entry| {
-            let path = entry.unwrap().path();
-            if path.is_file() && path.extension().unwrap_or_default() == "als" {
-                Some(path)
-            } else {
-                None
-            }
-        })
-        .count();
+    let dir: &str = "test als files/";
 
     let start_time = Instant::now();
-    let all_als_data = parallel_parse(dir);
-
-    // Convert to a yaml string for caching
-    let yaml_data = to_value(&all_als_data).unwrap();
-    let yaml_string = to_string(&yaml_data).unwrap();
-
+    let all_als_data = palsa(dir);
     let elapsed_time = start_time.elapsed();
 
-    // println!("Yaml string:\n{}", yaml_string);
     println!(
-        "Palsa completed with {} files in {:?}     :)",
-        file_count, elapsed_time
+        "\nPalsa completed with {} files in {:?}     :)",
+        all_als_data.len(),
+        elapsed_time
     )
 }
 
-// use std::fs;
-// use std::path::Path;
+fn palsa(dir: &str) -> Vec<AlsData> {
+    let all_als_data = parallel::parallel_parse(dir);
+    if let Err(e) = cache::cache(all_als_data.clone()) {
+        eprintln!("Error creating cache: {:?}", e);
+    }
 
-// fn main() {
-//     let dir_path = Path::new("/path/to/directory");
-//     let file_extension = "rs"; // Filter for Rust source files
+    let all_als_data = cache::retrieve().expect("Failed to retreive cache!");
 
-//     let count = fs::read_dir(dir_path)
-//         .unwrap() // Handle potential error
-//         .filter_map(|entry| {
-//             let path = entry.unwrap().path();
-//             if path.is_file() && path.extension().unwrap_or_default() == file_extension {
-//                 Some(path)
-//             } else {
-//                 None
-//             }
-//         })
-//         .count();
+    if let Err(e) = cache::cache(all_als_data.clone()) {
+        eprintln!("Error creating cache: {:?}", e);
+    }
 
-//     println!("Number of .{} files: {}", file_extension, count);
-// }
+    return all_als_data;
+}

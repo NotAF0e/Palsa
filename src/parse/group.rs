@@ -1,9 +1,9 @@
 use roxmltree::Node;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::get_attribute_value;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Group {
     pub id: u32,
     pub name: String,

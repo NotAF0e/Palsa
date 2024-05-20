@@ -1,9 +1,9 @@
 use roxmltree::Node;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::get_attribute_value;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Clip {
     pub name: String,
     pub time: f64,
@@ -32,7 +32,7 @@ impl Clip {
         }
     }
 }
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Loop {
     pub start: f64,
     pub end: f64,
