@@ -1,5 +1,7 @@
+use crate::gui::tabs::TabType;
 use crate::AlsData;
 use eframe::egui::{self, widgets::Spinner, Align, Label, SelectableLabel};
+use egui_dock::DockState;
 use std::{
     sync::mpsc,
     time::{Duration, Instant},
@@ -7,8 +9,9 @@ use std::{
 
 pub struct Gui {
     receiver: mpsc::Receiver<Vec<AlsData>>,
-    all_als: Option<Vec<AlsData>>,
-    selected_als: Option<usize>,
+    pub all_als: Option<Vec<AlsData>>,
+    pub selected_als: Option<usize>,
+    pub dock_state: DockState<TabType>,
 
     frame_time: Duration,
 }
@@ -19,6 +22,7 @@ impl Gui {
             receiver,
             all_als: None,
             selected_als: None,
+            dock_state: Gui::default_tab_layout(),
 
             frame_time: Duration::new(0, 0),
         }
@@ -54,33 +58,32 @@ impl Gui {
         });
     }
 
-    fn als_panel(&self, ctx: &egui::Context, all_als: &Vec<AlsData>) -> Option<usize> {
+    pub fn als_panel(&self, ui: &mut egui::Ui, all_als: &Vec<AlsData>) -> Option<usize> {
         let mut selected_index = self.selected_als;
 
-        egui::SidePanel::left("Als files panel").show(ctx, |ui| {
-            egui::ScrollArea::vertical()
-                .auto_shrink([false; 2])
-                .show(ui, |ui| {
-                    for (i, als) in all_als.iter().enumerate() {
-                        let is_selected = self.selected_als == Some(i);
-                        let response = ui.add(SelectableLabel::new(is_selected, &als.name));
+        egui::ScrollArea::vertical()
+            .auto_shrink([false; 2])
+            .show(ui, |ui| {
+                for (i, als) in all_als.iter().enumerate() {
+                    let is_selected = self.selected_als == Some(i);
+                    let response = ui.add(SelectableLabel::new(is_selected, &als.name));
 
-                        if response.clicked() {
-                            if is_selected {
-                                selected_index = None;
-                            } else {
-                                selected_index = Some(i);
-                            }
+                    if response.clicked() {
+                        if is_selected {
+                            selected_index = None;
+                        } else {
+                            selected_index = Some(i);
                         }
                     }
-                });
-        });
+                }
+            });
+
         selected_index
     }
 }
 
 impl eframe::App for Gui {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         let frame_start = Instant::now();
 
         if let Ok(received) = self.receiver.try_recv() {
@@ -88,11 +91,8 @@ impl eframe::App for Gui {
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            if let Some(all_als) = &self.all_als {
-                if let Some(selected_als) = self.selected_als {
-                    ui.add(Label::new(format!("{:?}", all_als[selected_als])));
-                }
-                self.selected_als = self.als_panel(ctx, all_als);
+            if self.all_als.is_some() {
+                self.tabs(ctx, frame);
             } else {
                 ui.with_layout(
                     egui::Layout::centered_and_justified(egui::Direction::TopDown),
