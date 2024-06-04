@@ -13,7 +13,7 @@ mod parallel;
 mod parse;
 
 fn main() {
-    let (sender, receiver) = mpsc::channel::<Vec<AlsData>>();
+    let (sender, receiver) = mpsc::channel::<Result<Vec<AlsData>, String>>();
     let dir: &str = "test als files/";
 
     thread::spawn(move || {
