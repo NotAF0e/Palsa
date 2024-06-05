@@ -1,14 +1,23 @@
 use crate::gui::tabs::TabType;
 use crate::AlsData;
-use eframe::egui::{self, widgets::Spinner, Align, Label, SelectableLabel};
+use eframe::egui::{self, widgets::Spinner, Align, Label, SelectableLabel, TextStyle};
 use egui_dock::DockState;
 use std::{
     sync::mpsc,
     time::{Duration, Instant},
 };
 
+#[derive(Debug)]
+pub enum GuiState {
+    Loading,
+    Loaded,
+    Error,
+}
+
 pub struct Gui {
-    receiver: mpsc::Receiver<Vec<AlsData>>,
+    receiver: mpsc::Receiver<Result<Vec<AlsData>, String>>,
+    state: GuiState,
+    pub error: String,
     pub all_als: Option<Vec<AlsData>>,
     pub selected_als: Option<usize>,
     pub dock_state: DockState<TabType>,
@@ -17,9 +26,11 @@ pub struct Gui {
 }
 
 impl Gui {
-    fn new(receiver: mpsc::Receiver<Vec<AlsData>>) -> Self {
+    fn new(receiver: mpsc::Receiver<Result<Vec<AlsData>, String>>) -> Self {
         Self {
             receiver,
+            state: GuiState::Loading,
+            error: "OH FUCK I ERRORED OUT!!!".to_string(),
             all_als: None,
             selected_als: None,
             dock_state: Gui::default_tab_layout(),
@@ -27,7 +38,7 @@ impl Gui {
             frame_time: Duration::new(0, 0),
         }
     }
-    pub fn run(rx: mpsc::Receiver<Vec<AlsData>>) {
+    pub fn run(rx: mpsc::Receiver<Result<Vec<AlsData>, String>>) {
         eframe::run_native(
             "Palsa",
             eframe::NativeOptions::default(),
@@ -80,6 +91,43 @@ impl Gui {
 
         selected_index
     }
+
+    fn handle_loading(&mut self, ctx: &egui::Context) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.with_layout(
+                egui::Layout::centered_and_justified(egui::Direction::TopDown),
+                |ui| {
+                    ui.add(Spinner::new().size(150.0));
+                    ui.add(Label::new("Loading..."));
+                },
+            );
+        });
+    }
+
+    fn handle_loaded(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        egui::CentralPanel::default().show(ctx, |_ui| {
+            self.tabs(ctx, frame);
+            self.info_bar(ctx);
+        });
+    }
+
+    fn handle_error(&mut self, ctx: &egui::Context) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            let mut style: egui::Style = (*ctx.style()).clone();
+            style.override_text_style = Some(TextStyle::Heading);
+            style.visuals.override_text_color = Some(egui::Color32::RED);
+            ctx.set_style(style);
+
+            ui.with_layout(
+                egui::Layout::centered_and_justified(egui::Direction::TopDown),
+                |ui| {
+                    ui.add(Label::new(
+                        egui::RichText::new(format!("{}", self.error)).size(50.0),
+                    ));
+                },
+            );
+        });
+    }
 }
 
 impl eframe::App for Gui {
@@ -87,24 +135,24 @@ impl eframe::App for Gui {
         let frame_start = Instant::now();
 
         if let Ok(received) = self.receiver.try_recv() {
-            self.all_als = Some(received);
+            match received {
+                Ok(als_data) => {
+                    self.all_als = Some(als_data);
+                    self.state = GuiState::Loaded;
+                }
+                Err(error) => {
+                    self.error = error;
+                    self.state = GuiState::Error;
+                }
+            }
         }
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            if self.all_als.is_some() {
-                self.tabs(ctx, frame);
-            } else {
-                ui.with_layout(
-                    egui::Layout::centered_and_justified(egui::Direction::TopDown),
-                    |ui| {
-                        ui.add(Spinner::new().size(150.0));
-                        ui.add(Label::new("Loading..."));
-                    },
-                );
-            }
-        });
+        match self.state {
+            GuiState::Loading => self.handle_loading(ctx),
+            GuiState::Loaded => self.handle_loaded(ctx, frame),
+            GuiState::Error => self.handle_error(ctx),
+        }
 
-        self.info_bar(ctx);
         self.frame_time = frame_start.elapsed();
         ctx.request_repaint();
     }
