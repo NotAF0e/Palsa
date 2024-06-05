@@ -1,4 +1,4 @@
-use crate::{extract, parse::als};
+use crate::extract;
 
 use crate::parse::als::AlsData;
 use rayon::prelude::*;
@@ -8,8 +8,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-/// Uses [`rayon`] and `find_als_files`
-/// to find all *als* files in a directory then parses them in parallel
+/// Uses [`rayon`]'s `par_iter` and `parallel`'s `find_als_files`
+/// to find all *als* files in a directory then extracts and parses them in parallel
 pub fn parallel_parse(dir: &str) -> Result<Vec<AlsData>, String> {
     let als_files: Vec<String> = match find_als_files(dir) {
         Ok(files) => files,

@@ -12,9 +12,9 @@ pub fn run(dir: &str) -> Result<Vec<AlsData>, String> {
 
             let all_als_data = cache::retrieve().expect("Failed to retreive cache!");
 
-            if let Err(e) = cache::cache(all_als_data.clone()) {
-                eprintln!("Error creating cache: {:?}", e);
-            }
+            // if let Err(e) = cache::cache(all_als_data.clone()) {
+            //     eprintln!("Error creating cache: {:?}", e);
+            // }
             Ok(all_als_data)
         }
         Err(error) => Err(error),
