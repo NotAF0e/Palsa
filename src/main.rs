@@ -14,7 +14,7 @@ mod parse;
 
 fn main() {
     let (sender, receiver) = mpsc::channel::<Result<Vec<AlsData>, String>>();
-    let dir: &str = "test als files/";
+    let dir: &str = "als_files/";
 
     thread::spawn(move || {
         let all_als_data = palsa::run(dir);

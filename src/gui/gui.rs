@@ -7,6 +7,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+#[derive(Debug)]
 pub enum GuiState {
     Loading,
     Loaded,
@@ -104,13 +105,10 @@ impl Gui {
     }
 
     fn handle_loaded(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            if let Some(ref all_als) = self.all_als {
-                self.als_panel(ui, all_als);
-            }
+        egui::CentralPanel::default().show(ctx, |_ui| {
+            self.tabs(ctx, frame);
+            self.info_bar(ctx);
         });
-        self.tabs(ctx, frame);
-        self.info_bar(ctx);
     }
 
     fn handle_error(&mut self, ctx: &egui::Context) {
@@ -135,7 +133,6 @@ impl Gui {
 impl eframe::App for Gui {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         let frame_start = Instant::now();
-        self.state = GuiState::Error;
 
         if let Ok(received) = self.receiver.try_recv() {
             match received {

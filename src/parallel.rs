@@ -21,34 +21,42 @@ pub fn parallel_parse(dir: &str) -> Result<Vec<AlsData>, String> {
     let all_als_data: Result<Vec<AlsData>, String> = als_files
         .par_iter()
         .enumerate()
-        .map(|(i, als_file)| {
+        .filter_map(|(i, als_file)| {
             let file_name = Path::new(als_file)
                 .file_stem()
                 .and_then(|stem| stem.to_str())
-                .ok_or_else(|| "Failed to get file stem or convert OsStr to str".to_string())?
+                .ok_or_else(|| "Failed to get file stem or convert OsStr to str".to_string())
+                .ok()?
                 .to_owned();
 
             if !Path::new(&format!("cache/{}.yaml", file_name)).is_file() {
-                let extracted_xml_contents = extract::extract(als_file.clone())
-                    .map_err(|e| e.to_string())?;
-                let als_data = AlsData::parse(file_name, extracted_xml_contents);
+                match extract::extract(als_file.clone()).map_err(|e| e.to_string()) {
+                    Ok(extracted_xml_contents) => {
+                        let als_data = AlsData::parse(file_name, extracted_xml_contents);
 
-                // Update the completed files
-                let mut completed = completed_files.lock().map_err(|e| e.to_string())?;
-                completed[i] = true;
+                        // Update the completed files
+                        let mut completed =
+                            completed_files.lock().map_err(|e| e.to_string()).ok()?;
+                        completed[i] = true;
 
-                Ok(als_data)
+                        Some(Ok(als_data))
+                    }
+                    Err(e) => Some(Err(e)),
+                }
             } else {
-                Err("File already exists in cache".to_string())
+                // File is already in cache, do nothing
+                None
             }
         })
         .collect();
 
-    all_als_data.map(|data| data.into_iter().filter_map(|als|Some(als)).collect())
+    all_als_data.map(|data| data.into_iter().filter_map(|als| Some(als)).collect())
 }
 
 /// Finds all .als files within the given directory.
 fn find_als_files(dir: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    fs::create_dir_all("als_files/")?;
+
     let mut als_files = Vec::new();
     for als_file in fs::read_dir(dir)? {
         let als_file = als_file?;
