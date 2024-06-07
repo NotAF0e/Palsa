@@ -1,7 +1,8 @@
-use crate::extract;
-
-use crate::parse::als::AlsData;
+// Used for parallelised iteration to extract and parse multiple files at once
 use rayon::prelude::*;
+
+use crate::extract;
+use crate::parse::als::AlsData;
 use std::{
     fs,
     path::Path,
@@ -53,8 +54,9 @@ pub fn parallel_parse(dir: &str) -> Result<Vec<AlsData>, String> {
     all_als_data.map(|data| data.into_iter().filter_map(|als| Some(als)).collect())
 }
 
-/// Finds all .als files within the given directory.
+/// Finds all *als* files within a given directory
 fn find_als_files(dir: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    // Creates the folder for *als* files if it does not already exist
     fs::create_dir_all("als_files/")?;
 
     let mut als_files = Vec::new();

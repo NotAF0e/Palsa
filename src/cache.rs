@@ -8,7 +8,7 @@ use std::{
 
 /// Creates *yaml* files for faster loading as files will not have to be parsed again
 pub fn cache(all_als_data: Vec<AlsData>) -> std::io::Result<()> {
-    // Ensure the cache directory exists and if not, creates it
+    // Creates the folder for cache if it does not already exist
     fs::create_dir_all("cache/")?;
 
     for als_data in all_als_data {
@@ -30,13 +30,12 @@ pub fn cache(all_als_data: Vec<AlsData>) -> std::io::Result<()> {
 pub fn retrieve() -> std::io::Result<Vec<AlsData>> {
     let mut all_als_data: Vec<AlsData> = Vec::new();
 
-    // Iterate through files in the "cache/" directory
     for entry in fs::read_dir("cache/")? {
         let entry = entry?;
         let path = entry.path();
 
-        // Only process YAML files
-        if path.is_file() && path.extension().unwrap_or_default() == "yaml" {
+        let is_yaml = path.is_file() && path.extension().unwrap_or_default() == "yaml";
+        if is_yaml {
             let mut file = File::open(&path)?;
             let mut file_contents = String::new();
             file.read_to_string(&mut file_contents)?;

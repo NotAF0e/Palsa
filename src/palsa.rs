@@ -2,6 +2,7 @@ use crate::cache;
 use crate::parallel;
 use crate::AlsData;
 
+/// Uses all `palsa` modules to extract, parse and create cache of *als* files
 pub fn run(dir: &str) -> Result<Vec<AlsData>, String> {
     let all_als_data = parallel::parallel_parse(dir);
     match all_als_data {

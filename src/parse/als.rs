@@ -9,7 +9,13 @@ pub struct AlsData {
     pub tracks: Vec<track::Track>,
 }
 
+pub struct Dir {
+    pub als_data: Option<Vec<AlsData>>,
+    pub dir: Option<Box<Dir>>,
+}
+
 impl AlsData {
+    /// Uses all `parse` modules to parse *als* files
     pub fn parse(name: String, xml_contents: String) -> AlsData {
         let doc = Document::parse(&xml_contents).unwrap();
         let root = doc.root_element();

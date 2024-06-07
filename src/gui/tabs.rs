@@ -1,5 +1,5 @@
 use crate::gui::gui::Gui;
-use eframe::egui::{self, Label};
+use eframe::egui;
 use egui_dock::{DockArea, DockState, NodeIndex, Split, Style};
 
 struct TabViewer<'a> {
@@ -30,8 +30,11 @@ impl<'a> egui_dock::TabViewer for TabViewer<'a> {
                 }
                 TabType::AlsViewer => {
                     if let Some(selected_als) = self.gui_handle.selected_als {
-                        ui.add(Label::new(format!("{:?}", all_als[selected_als])));
+                        ui.label(format!("{:?}", all_als[selected_als]));
+                    } else {
+                        ui.label(egui::RichText::new("Please choose a file...").size(40.0));
                     }
+                    ui.add_space(50.0);
                 }
             }
         }
@@ -67,6 +70,8 @@ impl Gui {
         let mut tab_viewer = TabViewer { gui_handle: self };
         DockArea::new(&mut dock_state)
             .style(Style::from_egui(&ctx.style()))
+            .show_close_buttons(false)
+            .draggable_tabs(false)
             .show(ctx, &mut tab_viewer);
 
         self.dock_state = dock_state;
