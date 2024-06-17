@@ -3,6 +3,6 @@ Cargo.lock
 
 # Don't flood the repo with test files
 /cache
-/test als files
+/als_files
 *.als
 *.xml

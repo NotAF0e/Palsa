@@ -9,9 +9,10 @@ pub struct AlsData {
     pub tracks: Vec<track::Track>,
 }
 
-pub struct Dir {
+#[derive(Debug, Clone)]
+pub struct Project {
+    pub name: String,
     pub als_data: Option<Vec<AlsData>>,
-    pub dir: Option<Box<Dir>>,
 }
 
 impl AlsData {

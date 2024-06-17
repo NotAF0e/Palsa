@@ -11,7 +11,7 @@ use std::{
 
 /// Uses [`rayon`]'s `par_iter` and `parallel`'s `find_als_files`
 /// to find all *als* files in a directory then extracts and parses them in parallel
-pub fn parallel_parse(dir: &str) -> Result<Vec<AlsData>, String> {
+pub fn parallel_parse_dir(project_name: &str, dir: &str) -> Result<Vec<AlsData>, String> {
     let als_files: Vec<String> = match find_als_files(dir) {
         Ok(files) => files,
         Err(e) => return Err(e.to_string()),
@@ -30,7 +30,7 @@ pub fn parallel_parse(dir: &str) -> Result<Vec<AlsData>, String> {
                 .ok()?
                 .to_owned();
 
-            if !Path::new(&format!("cache/{}.yaml", file_name)).is_file() {
+            if !Path::new(&format!("cache/{}/{}.yaml", project_name, file_name)).is_file() {
                 match extract::extract(als_file.clone()).map_err(|e| e.to_string()) {
                     Ok(extracted_xml_contents) => {
                         let als_data = AlsData::parse(file_name, extracted_xml_contents);

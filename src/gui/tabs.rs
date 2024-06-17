@@ -23,14 +23,22 @@ impl<'a> egui_dock::TabViewer for TabViewer<'a> {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
-        if let Some(all_als) = &self.gui_handle.all_als {
+        if let Some(ref projects) = &self.gui_handle.projects.clone() {
             match tab {
                 TabType::AlsFileList => {
-                    self.gui_handle.selected_als = self.gui_handle.als_panel(ui, all_als);
+                    self.gui_handle.selected_project_als = self.gui_handle.als_panel(ui, projects);
                 }
                 TabType::AlsViewer => {
-                    if let Some(selected_als) = self.gui_handle.selected_als {
-                        ui.label(format!("{:?}", all_als[selected_als]));
+                    if let Some((selected_project, selected_als)) =
+                        self.gui_handle.selected_project_als
+                    {
+                        let selected_als_data =
+                            projects[selected_project].als_data.as_ref().unwrap()[selected_als]
+                                .clone();
+
+                        ui.label(format!("{:#?}", &selected_als_data));
+
+                        self.gui_handle.visual_preview(ui, selected_als_data);
                     } else {
                         ui.label(egui::RichText::new("Please choose a file...").size(40.0));
                     }

@@ -6,7 +6,7 @@ use crate::get_attribute_value;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Track {
-    pub id: u32,
+    pub group_id: i32,
     pub name: String,
     pub color: Option<u32>,
     pub clips: Vec<clip::Clip>,
@@ -14,9 +14,10 @@ pub struct Track {
 
 impl Track {
     pub fn parse(node: Node) -> Track {
-        let id = node.attribute("Id").unwrap().parse().unwrap();
+        let group_id: i32 = get_attribute_value!(node, "TrackGroupId")
+            .parse()
+            .unwrap_or(-1);
         let name = get_attribute_value!(node, "Name", "EffectiveName").to_string();
-
         let color = None;
 
         let clips = node
@@ -26,7 +27,7 @@ impl Track {
             .collect();
 
         Track {
-            id,
+            group_id,
             name,
             color,
             clips,

@@ -1,23 +1,57 @@
+use std::fs;
+use std::path::Path;
+
 use crate::cache;
 use crate::parallel;
-use crate::AlsData;
+use crate::parse::als::Project;
 
-/// Uses all `palsa` modules to extract, parse and create cache of *als* files
-pub fn run(dir: &str) -> Result<Vec<AlsData>, String> {
-    let all_als_data = parallel::parallel_parse(dir);
-    match all_als_data {
-        Ok(all_als_data) => {
-            if let Err(e) = cache::cache(all_als_data.clone()) {
-                eprintln!("Error creating cache: {:?}", e);
+/// Extracts, parses and creates cache of all *als* files
+/// of the following depth:
+/// ```
+/// als_files
+/// --------- dir_0
+///           ----- als_n.als
+/// --------- dir_1
+///           ----- als_n.als
+/// ```
+pub fn run_palsa(dir: &Path) -> Result<Vec<Project>, String> {
+    let mut projects: Vec<Project> = Vec::new();
+
+    let mut errors = Vec::new();
+
+    for entry in fs::read_dir(dir).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+
+        if path.is_dir() {
+            let project_name = path
+                .file_stem()
+                .and_then(|stem| stem.to_str())
+                .ok_or_else(|| "Invalid project directory name".to_string())?
+                .to_string();
+
+            match parallel::parallel_parse_dir(&project_name, path.to_str().unwrap()) {
+                Ok(all_als_data) => {
+                    projects.push(Project {
+                        name: project_name,
+                        als_data: Some(all_als_data),
+                    });
+                }
+                Err(error) => {
+                    errors.push(error);
+                }
             }
-
-            let all_als_data = cache::retrieve().expect("Failed to retreive cache!");
-
-            // if let Err(e) = cache::cache(all_als_data.clone()) {
-            //     eprintln!("Error creating cache: {:?}", e);
-            // }
-            Ok(all_als_data)
         }
-        Err(error) => Err(error),
     }
+
+    if !errors.is_empty() {
+        return Err(errors.join(", "));
+    }
+
+    if let Err(e) = cache::cache(projects.clone()) {
+        eprintln!("Error creating cache: {:?}", e);
+    }
+    let retrieved = cache::retrieve().map_err(|e| format!("Failed to retrieve cache: {}", e))?;
+
+    Ok(retrieved)
 }
