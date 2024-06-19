@@ -8,7 +8,7 @@ use crate::get_attribute_value;
 pub struct Track {
     pub group_id: i32,
     pub name: String,
-    pub color: Option<u32>,
+    pub color: Option<usize>,
     pub clips: Vec<clip::Clip>,
 }
 
@@ -18,7 +18,7 @@ impl Track {
             .parse()
             .unwrap_or(-1);
         let name = get_attribute_value!(node, "Name", "EffectiveName").to_string();
-        let color = None;
+        let color = Some(get_attribute_value!(node, "Color").parse().unwrap());
 
         let clips = node
             .descendants()

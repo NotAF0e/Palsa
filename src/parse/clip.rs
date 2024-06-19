@@ -6,8 +6,8 @@ use crate::get_attribute_value;
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Clip {
     pub name: String,
-    pub start: f64,
-    pub end: f64,
+    pub start: f32,
+    pub end: f32,
     pub loop_data: Option<Loop>,
 }
 
@@ -15,10 +15,10 @@ impl Clip {
     pub fn parse(node: Node) -> Clip {
         let name: String = get_attribute_value!(node, "Name").to_string();
 
-        let start: f64 = get_attribute_value!(node, "CurrentStart")
+        let start: f32 = get_attribute_value!(node, "CurrentStart")
             .parse()
             .unwrap_or(-1.0);
-        let end: f64 = get_attribute_value!(node, "CurrentEnd")
+        let end: f32 = get_attribute_value!(node, "CurrentEnd")
             .parse()
             .unwrap_or(-1.0);
 

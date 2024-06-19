@@ -36,13 +36,11 @@ impl<'a> egui_dock::TabViewer for TabViewer<'a> {
                             projects[selected_project].als_data.as_ref().unwrap()[selected_als]
                                 .clone();
 
-                        ui.label(format!("{:#?}", &selected_als_data));
-
                         self.gui_handle.visual_preview(ui, selected_als_data);
                     } else {
-                        ui.label(egui::RichText::new("Please choose a file...").size(40.0));
+                        ui.label(egui::RichText::new("Please choose a file...").size(40.));
                     }
-                    ui.add_space(50.0);
+                    ui.add_space(50.);
                 }
             }
         }
