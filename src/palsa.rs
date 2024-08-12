@@ -8,7 +8,7 @@ use crate::parse::als::Project;
 /// Extracts, parses and creates cache of all *als* files
 /// of the following depth:
 /// ```
-/// als_files
+/// projects
 /// --------- dir_0
 ///           ----- als_n.als
 /// --------- dir_1
@@ -25,7 +25,7 @@ pub fn run_palsa(dir: &Path) -> Result<Vec<Project>, String> {
 
         if path.is_dir() {
             let project_name = path
-                .file_stem()
+                .file_name()
                 .and_then(|stem| stem.to_str())
                 .ok_or_else(|| "Invalid project directory name".to_string())?
                 .to_string();
