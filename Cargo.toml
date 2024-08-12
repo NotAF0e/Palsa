@@ -26,3 +26,6 @@ eframe = "0.27.2"
 egui_extras = { version = "0.27.2", features = ["image"] }
 egui_dock = "0.12.0"
 image = { version = "0.25.1", features = ["png"] }
+
+[package.metadata.bundle]
+assets = "assets/palsa"
