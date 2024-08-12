@@ -9,17 +9,17 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-/// Uses [`rayon`]'s `par_iter` and `parallel`'s `find_als_files`
+/// Uses [`rayon`]'s `par_iter` and `parallel`'s `find_projects`
 /// to find all *als* files in a directory then extracts and parses them in parallel
 pub fn parallel_parse_dir(project_name: &str, dir: &str) -> Result<Vec<AlsData>, String> {
-    let als_files: Vec<String> = match find_als_files(dir) {
+    let projects: Vec<String> = match find_projects(dir) {
         Ok(files) => files,
         Err(e) => return Err(e.to_string()),
     };
 
-    let completed_files = Arc::new(Mutex::new(vec![false; als_files.len()]));
+    let completed_files = Arc::new(Mutex::new(vec![false; projects.len()]));
 
-    let all_als_data: Result<Vec<AlsData>, String> = als_files
+    let all_als_data: Result<Vec<AlsData>, String> = projects
         .par_iter()
         .enumerate()
         .filter_map(|(i, als_file)| {
@@ -55,18 +55,15 @@ pub fn parallel_parse_dir(project_name: &str, dir: &str) -> Result<Vec<AlsData>,
 }
 
 /// Finds all *als* files within a given directory
-fn find_als_files(dir: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-    // Creates the folder for *als* files if it does not already exist
-    fs::create_dir_all("als_files/")?;
-
-    let mut als_files = Vec::new();
+fn find_projects(dir: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    let mut projects = Vec::new();
     for als_file in fs::read_dir(dir)? {
         let als_file = als_file?;
         let path = als_file.path();
 
         if path.is_file() && path.extension().unwrap_or_default() == "als" {
-            als_files.push(path.to_str().unwrap().to_string());
+            projects.push(path.to_str().unwrap().to_string());
         }
     }
-    Ok(als_files)
+    Ok(projects)
 }
