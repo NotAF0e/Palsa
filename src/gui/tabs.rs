@@ -63,9 +63,7 @@ impl Gui {
 
         dock_state
     }
-}
 
-impl Gui {
     pub fn tabs(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Create a placeholder DockState to temporarily replace self.dock_state
         let placeholder_dock_state = DockState::new(vec![]);
