@@ -9,11 +9,14 @@ use crate::parse::als::Project;
 /// of the following depth:
 /// ```
 /// projects
-/// --------- dir_0
-///           ----- als_n.als
-/// --------- dir_1
-///           ----- als_n.als
+/// -------- dir_0
+///          ----- als_0.als
+///          ----- als_1.als
+/// -------- dir_1
+///          ----- als_0.als
+///          ----- als_1.als
 /// ```
+
 pub fn run_palsa(dir: &Path) -> Result<Vec<Project>, String> {
     let mut projects: Vec<Project> = Vec::new();
 
