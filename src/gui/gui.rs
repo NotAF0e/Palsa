@@ -1,15 +1,14 @@
-use crate::{
-    gui::tabs::TabType,
-    parse::als::{AlsData, Project},
-};
+use crate::{gui::tabs::TabType, parse::als::Project};
 use eframe::egui::{
-    self, include_image, widgets::Spinner, Align, Align2, FontId, IconData, SelectableLabel,
-    TextStyle, Vec2,
+    self, widgets::Spinner, Align, IconData, SelectableLabel, TextStyle, TextureHandle, Vec2,
 };
 use egui_dock::DockState;
 use egui_extras::install_image_loaders;
 use image;
 use std::{
+    fs::File,
+    io::{self, BufRead},
+    path::Path,
     sync::mpsc,
     time::{Duration, Instant},
 };
@@ -29,14 +28,18 @@ pub struct Gui {
     pub selected_project_als: Option<(usize, usize)>,
     pub dock_state: DockState<TabType>,
 
-    preview_x_scale: f32,
-    preview_x_pos: f32,
+    pub preview_x_scale: f32,
+    pub preview_x_pos: f32,
+    pub preview_y_scale: f32,
+
+    pub colors: [String; 70],
+    icon_path: String,
 
     frame_time: Duration,
 }
 
 impl Gui {
-    fn new(receiver: mpsc::Receiver<Result<Vec<Project>, String>>) -> Self {
+    pub fn new(receiver: mpsc::Receiver<Result<Vec<Project>, String>>) -> Self {
         Self {
             receiver,
             state: GuiState::Loading,
@@ -45,23 +48,30 @@ impl Gui {
             selected_project_als: None,
             dock_state: Gui::default_tab_layout(),
 
-            preview_x_scale: 1.,
             preview_x_pos: 0.,
+            preview_x_scale: 3.,
+            preview_y_scale: 13.,
+
+            colors: match load_colors() {
+                Ok(colors) => colors,
+                Err(_) => init_colors(), // On this arm colors will just be errored and purple
+            },
+            icon_path: String::from("assets/palsa/icon.png"),
 
             frame_time: Duration::new(0, 0),
         }
     }
-    pub fn run(rx: mpsc::Receiver<Result<Vec<Project>, String>>) {
+    pub fn run(self) {
         eframe::run_native(
             "Palsa - Preview ableton live sets actually! Made with love by NotAFoe <3",
             eframe::NativeOptions {
                 viewport: egui::ViewportBuilder {
-                    icon: Some(Gui::load_icon("assets/logo.png").into()),
+                    icon: Some(Gui::load_icon(&self.icon_path).into()),
                     ..Default::default()
                 },
                 ..Default::default()
             },
-            Box::new(|_cc| Box::new(Gui::new(rx))),
+            Box::new(|_cc| Box::new(self)),
         )
         .expect("Failed to run Palsa, perhaps you do not have a graphical user interface?");
     }
@@ -146,75 +156,6 @@ impl Gui {
         self.selected_project_als
     }
 
-    pub fn visual_preview(&mut self, ui: &mut egui::Ui, selected_als_data: AlsData) {
-        let colors = [
-            "#E594A6", "#E6AA45", "#BB9D3E", "#F3F787", "#CEFC44", "#90FF4E", "#94FFAB", "#A3FEE7",
-            "#A2BEFB", "#6B75DE", "#9C9EFA", "#C162DF", "#C6539E", "#FFFFFF", "#D94444", "#D6732F",
-            "#8D7451", "#F7F656", "#B1FF74", "#76C531", "#6EBDAD", "#8CE5FC", "#669BE9", "#4E75BB",
-            "#8460DE", "#A771C1", "#DC2CCF", "#CFCFCF", "#C56B60", "#E6A67A", "#C5AF76", "#F0FFB3",
-            "#D4E69D", "#BDD27B", "#A6C58F", "#E0FDE2", "#D8EFF7", "#BBBDE0", "#C8B7E1", "#A991E0",
-            "#E2DBE0", "#A8A8A8", "#B6928C", "#A6845C", "#91846C", "#BABC70", "#A9C135", "#8BB257",
-            "#9BC0B8", "#A2B0C1", "#90A1BF", "#8A8DC7", "#A092B2", "#B69CBB", "#A97094", "#7A7A7A",
-            "#953B3B", "#93563B", "#685145", "#D0C73A", "#879835", "#6EA13F", "#5B9A8C", "#446080",
-            "#302190", "#454B9C", "#6142A7", "#9044A8", "#AD346E", "#3F3F3F",
-        ]; // Fucking ableton devs hardcoded this shit (I HAD TO DO THIS MANUALLY UGASHDFH)
-
-        ui.with_layout(egui::Layout::left_to_right(Align::TOP), |ui| {
-            egui::ScrollArea::both()
-                .auto_shrink([false; 2])
-                .show(ui, |ui| {
-                    ui.add(
-                        egui::DragValue::new(&mut self.preview_x_pos)
-                            .clamp_range(f32::MIN..=0.0)
-                            .speed(self.preview_x_scale / 5.),
-                    );
-                    ui.add(
-                        egui::DragValue::new(&mut self.preview_x_scale)
-                            .clamp_range(0.1..=100.)
-                            .speed(0.1),
-                    );
-
-                    let max_rect = ui.available_rect_before_wrap();
-                    let painter = ui.painter_at(max_rect);
-
-                    for (i, track) in selected_als_data.tracks.iter().enumerate() {
-                        for clip in &track.clips {
-                            let clip_rect = egui::Rect::from_x_y_ranges(
-                                egui::Rangef::new(
-                                    max_rect.min.x
-                                        + self.preview_x_pos
-                                        + clip.start * self.preview_x_scale,
-                                    max_rect.min.x
-                                        + self.preview_x_pos
-                                        + clip.end * self.preview_x_scale,
-                                ),
-                                egui::Rangef::new(
-                                    max_rect.min.y + (i as f32 * 42.),
-                                    max_rect.min.y + (i as f32 * 42.) + 40.,
-                                ),
-                            );
-                            let color = if let Some(track_color) = track.color {
-                                egui::Color32::from_hex(colors[track_color]).unwrap()
-                            } else {
-                                egui::Color32::from_rgb(255, 0, 255)
-                            };
-                            painter.rect_filled(clip_rect, 0.1, color);
-                        }
-                        painter.text(
-                            egui::Pos2 {
-                                x: max_rect.min.x,
-                                y: max_rect.min.y + (i as f32 * 42.) + 20.,
-                            },
-                            Align2::LEFT_CENTER,
-                            track.name.clone(),
-                            FontId::monospace(15.),
-                            egui::Color32::from_rgb(0, 0, 255),
-                        );
-                    }
-                });
-        });
-    }
-
     /// Displays a spinner when loading
     fn handle_loading(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -223,7 +164,7 @@ impl Gui {
                 ui.label(egui::RichText::new("Loading...").size(15.));
 
                 ui.add(
-                    egui::Image::new(include_image!("../../assets/logo.png"))
+                    egui::Image::from_texture(&self.app_icon(ctx))
                         .max_size(Vec2 { x: 150., y: 150. }),
                 );
 
@@ -239,6 +180,8 @@ impl Gui {
     fn handle_loaded(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |_ui| {
             self.tabs(ctx, frame);
+
+            self.control_window(ctx);
         });
     }
 
@@ -257,6 +200,30 @@ impl Gui {
                 },
             );
         });
+    }
+
+    fn app_icon(&self, ctx: &egui::Context) -> TextureHandle {
+        let path = Path::new(&self.icon_path);
+        if let Ok(image) = image::open(path) {
+            let image = image.to_rgba8();
+            let dimensions = image.dimensions();
+            let pixels = image.into_raw();
+
+            let texture = ctx.load_texture(
+                "icon",
+                egui::ColorImage::from_rgba_unmultiplied(
+                    [dimensions.0 as _, dimensions.1 as _],
+                    &pixels,
+                ),
+                egui::TextureOptions {
+                    ..Default::default()
+                },
+            );
+
+            texture
+        } else {
+            panic!("Icon was not found at {:?}", &self.icon_path);
+        }
     }
 }
 
@@ -288,4 +255,35 @@ impl eframe::App for Gui {
         self.frame_time = frame_start.elapsed();
         ctx.request_repaint();
     }
+}
+
+fn load_colors() -> Result<[String; 70], io::Error> {
+    let path = Path::new("assets/palsa/default-colors.txt");
+    let file = File::open(path)?;
+    let reader = io::BufReader::new(file);
+
+    let mut colors = init_colors();
+
+    for (i, line) in reader.lines().enumerate() {
+        if i >= 70 {
+            break; // Stop reading if more than 70 lines are encountered
+        }
+        colors[i] = line?; // `line?` is the String, use it directly
+    }
+
+    // Check if we have exactly 70 colors
+    if colors.iter().any(|s| s.is_empty()) {
+        Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "File contains fewer than 70 lines",
+        ))
+    } else {
+        Ok(colors)
+    }
+}
+
+fn init_colors() -> [String; 70] {
+    // Initalizes an array of 70 purple hex values (Unloaded texture values)
+    // Cant use [String::from("800080"); 70] so im using this bellow to avoid the copy trait :(
+    return std::array::from_fn(|_| String::from("800080"));
 }
