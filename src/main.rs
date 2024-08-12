@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::{fs, io};
 
 // Used for multithreading of initial file loading to separate it from the gui
 use std::sync::mpsc;
@@ -15,9 +16,11 @@ mod palsa;
 mod parallel;
 mod parse;
 
-fn main() {
+fn main() -> io::Result<()> {
     let (sender, receiver) = mpsc::channel::<Result<Vec<Project>, String>>();
-    let dir: &Path = Path::new("als_files/");
+
+    let dir: &Path = Path::new("projects/");
+    fs::create_dir_all(dir)?;
 
     // Creates a thread to run palsa in parralel with ui for initial file loading
     thread::spawn(move || {
@@ -25,5 +28,8 @@ fn main() {
         sender.send(projects).unwrap();
     });
 
-    Gui::run(receiver);
+    let gui = Gui::new(receiver);
+    gui.run();
+
+    Ok(())
 }
