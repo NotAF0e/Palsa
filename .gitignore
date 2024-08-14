@@ -4,5 +4,4 @@ Cargo.lock
 # Don't flood the repo with test files
 /cache
 /projects
-*.als
 *.xml
