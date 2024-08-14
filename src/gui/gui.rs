@@ -23,7 +23,6 @@ pub enum GuiState {
 pub struct Gui {
     receiver: mpsc::Receiver<Result<Vec<Project>, String>>,
     state: GuiState,
-    pub error_msg: String,
     pub projects: Option<Vec<Project>>,
     pub selected_project_als: Option<(usize, usize)>,
     pub dock_state: DockState<TabType>,
@@ -35,6 +34,8 @@ pub struct Gui {
     pub colors: [String; 70],
     icon_path: String,
 
+    info: String,
+    pub error_msg: String,
     frame_time: Duration,
 }
 
@@ -43,7 +44,6 @@ impl Gui {
         Self {
             receiver,
             state: GuiState::Loading,
-            error_msg: "THERE WAS AN ERROR BUT HOW???".to_string(),
             projects: None,
             selected_project_als: None,
             dock_state: Gui::default_tab_layout(),
@@ -58,6 +58,8 @@ impl Gui {
             },
             icon_path: String::from("assets/palsa/icon.png"),
 
+            info: String::new(),
+            error_msg: "THERE WAS AN ERROR BUT HOW???".to_string(),
             frame_time: Duration::new(0, 0),
         }
     }
@@ -94,23 +96,11 @@ impl Gui {
     }
 
     /// An info bar which displays cool info such as the number of files loaded and the frametime
-    fn info_bar(&self, ctx: &egui::Context) {
+    fn info_bar(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::bottom("info_bar").show(ctx, |ui| {
             // Left to right side ui elements
             ui.with_layout(egui::Layout::left_to_right(Align::TOP), |ui| {
-                if let Some(ref projects) = self.projects {
-                    ui.label(
-                        egui::RichText::new(format!(
-                            "Loaded {} als files :)",
-                            projects
-                                .iter()
-                                .flat_map(|project| project.als_data.iter())
-                                .flatten()
-                                .count()
-                        ))
-                        .size(15.),
-                    );
-                }
+                self.gen_info(ui);
 
                 // Displays frame time of the application
                 ui.with_layout(egui::Layout::right_to_left(Align::TOP), |ui| {
@@ -118,6 +108,20 @@ impl Gui {
                 });
             });
         });
+    }
+
+    fn gen_info(&mut self, ui: &mut egui::Ui) {
+        if let Some(ref projects) = self.projects {
+            self.info = format!(
+                "Loaded {:?} als files :)",
+                projects
+                    .iter()
+                    .flat_map(|project| project.als_data.iter())
+                    .flatten()
+                    .count()
+            );
+            ui.label(egui::RichText::new(&self.info).size(15.));
+        }
     }
 
     /// Lists the als files and lets the user select one
@@ -268,7 +272,7 @@ fn load_colors() -> Result<[String; 70], io::Error> {
         if i >= 70 {
             break; // Stop reading if more than 70 lines are encountered
         }
-        colors[i] = line?; // `line?` is the String, use it directly
+        colors[i] = line?;
     }
 
     // Check if we have exactly 70 colors
