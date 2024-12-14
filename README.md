@@ -1,3 +1,5 @@
+# Development paused indefinitely, currently working on a personal private project. If anyone would like to create some PRs to improve this go ahead!!!
+
 # 🚧 **UNDER CONSTRUCTION** 🚧
 ## Hi! If you want an interface to preview ableton 11 projects, specifically their *als* (ableton live set) files, this may be for you!
 
